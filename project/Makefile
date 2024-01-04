@@ -1,5 +1,6 @@
 FRONT_END_BINARY=frontApp
 BROKER_BINARY=brokerApp
+AUTH_BINARY=authApp
 
 ## up: starts all containers in the background without forcing build
 up:
@@ -8,7 +9,7 @@ up:
 	@echo "Docker images started!"
 
 ## up_build: stops docker-compose (if running), builds all projects and starts docker compose
-up_build: build_broker
+up_build: build_broker build_auth
 	@echo "Stopping docker images (if running...)"
 	docker-compose down
 	@echo "Building (when required) and starting docker images..."
@@ -27,11 +28,16 @@ build_broker:
 	cd ../broker-service && env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ${BROKER_BINARY} ./cmd/api
 	@echo "Broker binary built!"
 
+## build_auth: builds the auth binary as a linux executable
+build_auth:
+	@echo "Building auth binary..."
+	cd ../authentication-service && env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ${AUTH_BINARY} ./cmd/api
+	@echo "auth binary built!"
 
 ## front_end_linux: builds linux executable for front end
 front_end:
 	@echo "Building linux version of front end..."
-	cd front-end && env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o frontEnd ./cmd/web
+	cd ../front-end && env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o frontEnd ./cmd/web
 	@echo "Done!"
 
 
@@ -48,8 +54,8 @@ broker: build_broker
 ## start: starts the front end
 start:
 	@echo "Starting front end"
-	cd front-end && go build -o ${FRONT_END_BINARY} ./cmd/web
-	cd front-end && ./${FRONT_END_BINARY} &
+	cd ../front-end && go build -o ${FRONT_END_BINARY} ./cmd/web
+	cd ../front-end && ./${FRONT_END_BINARY} &
 
 ## stop: stop the front end
 stop:
@@ -65,8 +71,10 @@ test:
 ## clean: runs go clean and deletes binaries
 clean:
 	@echo "Cleaning..."
-	@cd broker-service && rm -f ${BROKER_BINARY}
-	@cd broker-service && go clean
-	@cd front-end && go clean
-	@cd front-end && rm -f ${FRONT_END_BINARY}
+	@cd ../broker-service && rm -f ${BROKER_BINARY}
+	@cd ../broker-service && go clean
+	@cd ../front-end && go clean
+	@cd ../front-end && rm -f ${FRONT_END_BINARY}
+	@cd ../authentication-service && rm -f ${AUTH_BINARY}
+	@cd ../authentication-service && go clean
 	@echo "Cleaned!"

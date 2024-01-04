@@ -22,3 +22,6 @@ go.work
 .DS_Store
 .idea/*
 broker-service/brokerApp
+authentication-service/authApp
+/project/db-data/
+front-end/frontApp

@@ -11,3 +11,35 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      MYSQL_USER: xfang
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_PASSWORD: 123456
+      MYSQL_DATABASE: users
+    volumes:
+      - ./db-data/mysql:/var/lib/mysql
+
+  authentication-service:
+    build:
+        context: ./../authentication-service
+        dockerfile: ./../authentication-service/Dockerfile
+    restart: always
+    ports:
+      - "8081:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "xfang:123456@tcp(mysql:3306)/users?charset=utf8mb4&parseTime=True&loc=Local"
+    depends_on:
+      - mysql
+
