@@ -26,3 +26,5 @@ broker-service/brokerApp
 authentication-service/authApp
 front-end/frontApp
 logger-service/loggerApp
+listener-service/listenerApp
+mail-service/mailerApp

@@ -3,23 +3,18 @@ package main
 import (
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"listener/lib/event"
 	"log"
 	"math"
-	"net/http"
 	"os"
 	"time"
 )
 
-const webPort = "80"
-
-type Config struct {
-	Rabbit *amqp.Connection
-}
-
 func main() {
-	rabbitConn, err := connectToRabbit()
+	// try to connect to RabbitMQ
+	rabbitConn, err := connect()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 	defer func(rabbitConn *amqp.Connection) {
@@ -28,26 +23,25 @@ func main() {
 
 		}
 	}(rabbitConn)
-	app := Config{
-		Rabbit: rabbitConn,
-	}
 
-	log.Printf("Starting broker service on port %s", webPort)
+	// start listening for messages
 
-	// define http server
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", webPort),
-		Handler: app.routes(),
-	}
-
-	err = srv.ListenAndServe()
+	// create a new consumer
+	consumer, err := event.NewConsumer(rabbitConn)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
+	}
+
+	// consumer.Listen watches the queue and consumes events for all the provided topics.
+	err = consumer.Listen([]string{"log.INFO", "log.WARNING", "log.ERROR"})
+	if err != nil {
+		log.Println(err)
 	}
 }
 
-// connectToRabbit tries to connect to RabbitMQ, for up to 30 seconds
-func connectToRabbit() (*amqp.Connection, error) {
+// connect tries to connect to RabbitMQ, and delays between attempts.
+// If we can't connect after 5 tries (with increasing delays), return an error
+func connect() (*amqp.Connection, error) {
 	var counts int64
 	var backOff = 1 * time.Second
 	var connection *amqp.Connection
@@ -56,7 +50,7 @@ func connectToRabbit() (*amqp.Connection, error) {
 	for {
 		c, err := amqp.Dial(rabbitURL)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("RabbitMQ not yet ready...")
 			counts++
 		} else {
 			fmt.Println("RabbitMQ is ready!")
